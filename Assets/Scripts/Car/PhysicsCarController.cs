@@ -1,13 +1,15 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class CarController : MonoBehaviour
+public class PhysicsCarController : MonoBehaviour
 {
 
-    Rigidbody carRigidbody;
+    [SerializeField] protected WheelCollider[] rearWheels;
+    [SerializeField] protected WheelCollider[] frontWheels;
 
     [SerializeField] protected float turningSpeed = 1;
     [SerializeField] protected float accelerationSpeed = 1;
+    [SerializeField] protected float maxSteeringAngle = 30;
 
     bool turningLeft = false,
          turningRight = false,
@@ -16,14 +18,14 @@ public class CarController : MonoBehaviour
 
     void Awake()
     {
-        carRigidbody = GetComponent<Rigidbody>();
+        
     }
 
-	void Update ()
+    void Update()
     {
         HandleInput();
         ApplyForces();
-	}
+    }
 
     void HandleInput()
     {
@@ -76,16 +78,47 @@ public class CarController : MonoBehaviour
     {
         if (turningRight && !turningLeft)
         {
-            carRigidbody.AddTorque(Vector3.up * turningSpeed);
+            RotateFrontWheels(turningSpeed);
         }
         else if (turningLeft && !turningRight)
         {
-            carRigidbody.AddTorque(Vector3.up * -turningSpeed);
+            RotateFrontWheels(-turningSpeed);
+        }
+        else
+        {
+            StraightenWheels();
         }
 
         if (accelerating)
         {
-            carRigidbody.AddForceAtPosition(transform.forward * accelerationSpeed, transform.position - transform.forward);
+            AddForceToRearWheels(accelerationSpeed);
         }
     }
+
+    void AddForceToRearWheels(float force)
+    {
+        rearWheels[0].motorTorque += force;
+        rearWheels[1].motorTorque += force;
+    }
+
+    void RotateFrontWheels(float angle)
+    {
+        frontWheels[0].steerAngle = Mathf.Clamp(frontWheels[0].steerAngle + angle, -maxSteeringAngle, maxSteeringAngle);
+        frontWheels[1].steerAngle = Mathf.Clamp(frontWheels[1].steerAngle + angle, -maxSteeringAngle, maxSteeringAngle);
+    }
+
+    void StraightenWheels()
+    {
+        if (frontWheels[0].steerAngle < 0)
+        {
+            frontWheels[0].steerAngle = Mathf.Min(frontWheels[0].steerAngle + turningSpeed, 0);
+            frontWheels[1].steerAngle = Mathf.Min(frontWheels[0].steerAngle + turningSpeed, 0);
+        }
+        else
+        {
+            frontWheels[0].steerAngle = Mathf.Max(frontWheels[0].steerAngle - turningSpeed, 0);
+            frontWheels[1].steerAngle = Mathf.Max(frontWheels[0].steerAngle - turningSpeed, 0);
+        }
+    }
+
 }
